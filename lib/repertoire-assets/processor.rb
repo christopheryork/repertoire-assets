@@ -15,9 +15,10 @@ module Repertoire
         :js_source_files =>                          # app javascript files to jumpstart dependency processing
                             [ 'public/javascripts/application.js', 'public/javascripts/*.js' ],
         
-        :gem_asset_roots => [ '../public' ],         # location under $LOAD_PATHs to use as root for asset uris
+        :gem_asset_roots =>                          # location under $LOAD_PATHs to use as root for asset uris
+                            [ '../public', '../vendor/assets' ],
         :gem_libraries   =>                          # location under $LOAD_PATHs to search for javascript libraries
-                            [ '../public/javascripts/*.js' ],
+                            [ '../public/javascripts/*.js', '../vendor/assets/javascripts/*.js' ],
 
         :cache_root      => 'public',                # app directory to put cache files & digests in, should be webserver visible
         :digest_basename => 'digest',                # file basename for css & js digests
@@ -351,7 +352,8 @@ module Repertoire
       # expanded, as follows.
       #
       #   (1) <library> and <library/sublibrary> are dereferenced
-      #   (2) "relative/file" is expanded based on the current working directory
+      #   (2) "relative/file" is expanded based on the current working directory 
+      #       (quotes optional)
       #   (3) globs are expanded (see Ruby Dir[])
       #   (4) the default extension (.js) is checked
       #   (5) finally, 'requires' or 'provides' are called on any resulting files
@@ -373,11 +375,14 @@ module Repertoire
       # ---
       def directive(cwd, line, level=0)
         # extract the preprocessing directive
-        return unless line[ %r{^\s*//=\s*(\w+)\s+(".+"|<.+>)\s*$} ]
+        return unless line[ %r{^\s*//=\s*(\w+)\s+(".+"|<.+>|.+)\s*$} ]
         directive, pathspec = $1, $2
       
         # progressively expand path specification
         pathlist = pathspec
+      
+        # default to relative path if syntax is ambiguous
+        pathlist = "\"#{pathspec}\"" unless pathlist[ %r{".+"|<.*>} ]
 
         # expand library and sublibrary references
         pathlist.gsub!( %r{^<([^/>]*)/?(.*)>} ) do
